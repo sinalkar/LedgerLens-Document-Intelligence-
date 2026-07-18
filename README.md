@@ -85,6 +85,7 @@ Misconfiguration (missing key, moderation off in prod, local storage on Cloud Ru
 | Endpoint | Purpose |
 |---|---|
 | `POST /ingest` | Upload JPEG/PNG (≤10 MB) → moderation → extraction → routing. Returns doc id, status (`auto_approved` / `pending_review`), extracted schema, flagged fields, cost |
+| `POST /batch` | Upload multiple images; processed sequentially through the same pipeline. Returns a CSV summary (status, flagged fields, cost, error per file) |
 | `GET /review` | Pending review items (field, extracted value, confidence, image URL) |
 | `POST /approve` | Submit corrections for a document; drains its queue and marks it `approved` |
 | `GET /documents` | Paginated list of processed documents |
