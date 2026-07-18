@@ -1,9 +1,10 @@
-import json
+import csv
+import io
 import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -15,6 +16,7 @@ from app.metrics import (
     MODERATION_LATENCY,
     REVIEW_QUEUE_DEPTH,
     TOKEN_COST,
+    record_doc_processed,
 )
 from app.providers import get_provider
 from app.providers.base import ExtractionFailedError, ExtractionResult
@@ -117,14 +119,12 @@ def persist_review_items(
     )
 
 
-@router.post("/ingest", response_model=IngestResponse)
-async def ingest(
-    file: UploadFile,
-    provider=Depends(get_provider),
-    db: Session = Depends(get_db),
-):
+def process_document(
+    raw: bytes, filename: str, provider, db: Session
+) -> IngestResponse:
+    """The full ingest pipeline for one document. Shared by /ingest and
+    /batch; raises HTTPException on validation/moderation/extraction failure."""
     settings = get_settings()
-    raw = await file.read()
     try:
         validate_upload(raw)
     except UploadValidationError as e:
@@ -141,7 +141,8 @@ async def ingest(
     if not verdict.allowed:
         MODERATION_BLOCKS.inc()
         DOCS_PROCESSED.labels(status="blocked").inc()
-        persist_blocked(db, file.filename or "upload", verdict.reason)
+        record_doc_processed()
+        persist_blocked(db, filename, verdict.reason)
         logger.warning("Upload blocked by moderation gate: %s", verdict.reason)
         raise HTTPException(422, {"blocked_reason": verdict.reason})
 
@@ -164,12 +165,13 @@ async def ingest(
     usd = cost_usd(
         result.provider, result.model, result.prompt_tokens, result.completion_tokens
     )
-    persist_document(db, doc_id, file.filename or "upload", status, invoice, result, image_path, usd)
+    persist_document(db, doc_id, filename, status, invoice, result, image_path, usd)
     if flagged:
         persist_review_items(db, doc_id, invoice, flagged)
 
     TOKEN_COST.inc(usd)  # 6. metrics
     DOCS_PROCESSED.labels(status=status).inc()
+    record_doc_processed()
     if status == "auto_approved":
         AUTO_APPROVALS.inc()
 
@@ -186,4 +188,56 @@ async def ingest(
         cost_usd=usd,
         provider=result.provider,
         model=result.model,
+    )
+
+
+@router.post("/ingest", response_model=IngestResponse)
+async def ingest(
+    file: UploadFile,
+    provider=Depends(get_provider),
+    db: Session = Depends(get_db),
+):
+    raw = await file.read()
+    return process_document(raw, file.filename or "upload", provider, db)
+
+
+@router.post("/batch")
+async def batch_ingest(
+    files: list[UploadFile],
+    provider=Depends(get_provider),
+    db: Session = Depends(get_db),
+):
+    """Batch mode: process a set of images sequentially and return a CSV
+    summary of auto-approved vs flagged (vs blocked/failed) per document."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(
+        ["filename", "doc_id", "status", "flagged_fields", "cost_usd", "error"]
+    )
+    for file in files:
+        raw = await file.read()
+        filename = file.filename or "upload"
+        try:
+            result = process_document(raw, filename, provider, db)
+            writer.writerow(
+                [
+                    filename,
+                    result.doc_id,
+                    result.status,
+                    ";".join(result.flagged_fields),
+                    f"{result.cost_usd:.6f}",
+                    "",
+                ]
+            )
+        except HTTPException as e:
+            detail = e.detail
+            if isinstance(detail, dict):
+                status, error = "blocked", detail.get("blocked_reason", "")
+            else:
+                status, error = "failed", str(detail)
+            writer.writerow([filename, "", status, "", "", error])
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=batch_summary.csv"},
     )

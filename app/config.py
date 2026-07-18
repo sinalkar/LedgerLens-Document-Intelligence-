@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     gcs_bucket_name: str | None = None
 
     # Service
-    api_host: str = "0.0.0.0"
+    # Containerized service must bind all interfaces
+    api_host: str = "0.0.0.0"  # nosec B104
     api_port: int = 8080
     log_level: str = "INFO"
     environment: Literal["development", "production"] = "development"
