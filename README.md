@@ -116,11 +116,22 @@ pytest tests/ -v
 
 All tests run **without real API calls** via a `FakeProvider` — no keys needed. Coverage: schema contracts, confidence routing boundaries, arithmetic cross-checks, PII redaction + log filter, moderation gate (block / pass / fail-closed / fail-open), watermarking, provider factory, and the JSON-mode retry loop.
 
-## Deployment (GCP Cloud Run)
+## CI/CD & releases
 
-`.github/workflows/deploy.yml` runs the test suite on every push/PR, and deploys `main` to Cloud Run when the `ENABLE_DEPLOY` repo variable is `true` and `GCP_SA_KEY` / `GCP_PROJECT` / `GCS_BUCKET` secrets are set. Keys live in **GCP Secret Manager** (`--set-secrets`) — never in the image or repo.
+Three GitHub Actions workflows (details in [docs/CI_CD.md](docs/CI_CD.md)):
 
-Cloud Run's filesystem is **ephemeral**: production requires `STORAGE_BACKEND=gcs` (config validation enforces this) and a persistent `DATABASE_URL` (Cloud SQL Postgres).
+- **`ci.yml`** — on every PR and push to `main`: ruff lint, the 51-test pytest suite, Bandit security scan (blocking on medium+ severity) + pip-audit dependency CVE check, and a Docker build check.
+- **`codeql.yml`** — GitHub CodeQL code scanning (`security-extended` queries) on PRs, `main`, and a weekly schedule.
+- **`release.yml`** — on every merge to `main`: re-runs the test gate, publishes the Docker image to **GHCR** (`latest`, `v0.1.N`, commit SHA tags), scans the image with Trivy, and creates a versioned **GitHub Release** with auto-generated notes and pull/run instructions.
+
+No cloud-provider deploy step — the published image runs anywhere:
+
+```bash
+docker pull ghcr.io/<owner>/<repo>:latest
+docker run --env-file .env -p 8080:8080 ghcr.io/<owner>/<repo>:latest
+```
+
+If you deploy to Cloud Run or similar, remember its filesystem is **ephemeral**: production requires `STORAGE_BACKEND=gcs` (config validation enforces this) and a persistent `DATABASE_URL` (e.g. Cloud SQL Postgres).
 
 ## Repository layout
 

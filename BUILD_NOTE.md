@@ -11,7 +11,7 @@ A deployable document-intelligence service: receipt/invoice image in, schema-val
 - **Batch mode**: `POST /batch` processes a set of images sequentially and returns a CSV summary (auto-approved / pending_review / blocked / failed per file), with a `throughput_docs_per_minute` gauge.
 - **Streamlit UI**: Upload page (extraction table with green/amber confidence badges, provider/model/cost footer), Review page (`st.data_editor` inline corrections beside the source image), Documents page.
 - **Observability**: Prometheus histograms/counters/gauges for moderation latency, extraction latency, token cost (USD), docs by outcome, moderation blocks, auto-approvals, review queue depth, throughput; provisioned Grafana dashboard (latency percentiles, cost per doc, auto-approval rate, throughput, queue depth).
-- **Delivery**: Dockerfile, docker-compose (API + UI + Prometheus + Grafana), GitHub Actions CI running the full pytest suite before a gated Cloud Run deploy.
+- **Delivery**: Dockerfile, docker-compose (API + UI + Prometheus + Grafana), and a three-workflow GitHub Actions pipeline — quality gate (ruff, pytest, Bandit, pip-audit, Docker build check), CodeQL code scanning, and an on-merge release that publishes the image to GHCR (Trivy-scanned) and cuts a versioned GitHub Release with generated notes (see `docs/CI_CD.md`).
 
 ## Key decisions
 
