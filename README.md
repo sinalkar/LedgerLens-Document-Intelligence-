@@ -370,19 +370,10 @@ All tests run offline via a `FakeProvider`. Coverage highlights:
 
 ---
 
-## 🗺️ Roadmap (stretch)
-
-- 🔎 **Visual RAG search** — index archived invoices in a vector DB so *"find all invoices from Vendor X above ₹50,000"* becomes a semantic query
-- 🎙️ **Voice summaries** — Whisper reviewer annotations → GPT summarization → TTS episode per invoice
-- 🕸️ **LangGraph review workflow** — the review step as an explicit `interrupt()` node with SSE streaming instead of polling
-- ♻️ **Incremental indexing** — document-hash comparison to upsert only changed records
-
----
-
 <div align="center">
 
 **[📝 Build Note](BUILD_NOTE.md)** · **[🔁 CI/CD Docs](docs/CI_CD.md)** · **[🐛 Issues](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/issues)**
 
-*LedgerLens — capstone C·02, Document Intelligence.*
+*LedgerLens — Document Intelligence.*
 
 </div>
