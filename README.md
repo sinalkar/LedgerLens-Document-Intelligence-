@@ -9,6 +9,7 @@
 [![CI](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/ci.yml/badge.svg)](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/codeql.yml/badge.svg)](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/codeql.yml)
 [![Release](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/release.yml/badge.svg)](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/release.yml)
+[![Secret Scan](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/sinalkar/LedgerLens-Document-Intelligence-/actions/workflows/secret-scan.yml)
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
@@ -309,8 +310,10 @@ flowchart LR
         C4["🐳 docker build check"]
     end
     PR --> CQ["🔍 codeql.yml<br/>security-extended · weekly"]
+    PR --> SS["🔑 secret-scan.yml<br/>gitleaks · full history"]
     CI --> M["✅ Merge to main"]
     CQ --> M
+    SS --> M
     M --> REL
     subgraph REL["release.yml — on merge"]
         direction TB

@@ -1,13 +1,14 @@
 # CI/CD Pipeline
 
-Three workflows under `.github/workflows/`. No cloud deploy — the published Docker image is the deliverable and runs anywhere (`docker run`, Cloud Run, Render, Railway, a VM).
+Four workflows under `.github/workflows/`. No cloud deploy — the published Docker image is the deliverable and runs anywhere (`docker run`, Cloud Run, Render, Railway, a VM).
 
 ```
-Pull request ──▶ ci.yml      lint · tests · security scan · docker build check
-             └─▶ codeql.yml  SAST code scanning
+Pull request ──▶ ci.yml          lint · tests · security scan · docker build check
+             ├─▶ codeql.yml      SAST code scanning
+             └─▶ secret-scan.yml gitleaks over full git history
 
-Merge to main ─▶ ci.yml + codeql.yml (again, on the merged tree)
-             └─▶ release.yml tests → GHCR image push → Trivy scan → GitHub Release
+Merge to main ─▶ ci.yml + codeql.yml + secret-scan.yml (again, on the merged tree)
+             └─▶ release.yml     tests → GHCR image push → Trivy scan → GitHub Release
 ```
 
 ## `ci.yml` — quality gate (every PR and push to main)
@@ -24,6 +25,15 @@ Merge to main ─▶ ci.yml + codeql.yml (again, on the merged tree)
 ## `codeql.yml` — code scanning (PRs, main, weekly)
 
 GitHub CodeQL with the `security-extended` query pack for Python. Findings appear under **Security → Code scanning** in the repo. The weekly Monday schedule re-scans unchanged code against newly published vulnerability patterns.
+
+## `secret-scan.yml` — committed-credential detection (PRs, main, weekly)
+
+[Gitleaks](https://github.com/gitleaks/gitleaks) scans the **entire git history** (`fetch-depth: 0`), not just the changed files — a key committed and later "deleted" is still in history and still leaked. Runs on every PR, every push to `main`, and a weekly schedule so newly added detection rules re-check old commits. A finding fails the build.
+
+Two practices complement the scanner:
+
+- `.env` is gitignored; only `.env.example` with placeholder values is committed.
+- Consider enabling GitHub's built-in **secret scanning + push protection** under *Settings → Code security* — it blocks pushes containing known credential patterns before they ever land.
 
 ## `release.yml` — release on merge (push to main)
 
