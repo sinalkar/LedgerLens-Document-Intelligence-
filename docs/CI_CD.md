@@ -39,10 +39,12 @@ Two practices complement the scanner:
 
 1. **Test gate** — the full pytest suite runs again on the merged tree; a red suite blocks the release.
 2. **Version** — `v0.1.<run_number>`, monotonically increasing, no manual tagging needed.
-3. **Docker publish** — image pushed to GitHub Container Registry as:
-   - `ghcr.io/<owner>/<repo>:latest`
-   - `ghcr.io/<owner>/<repo>:v0.1.N`
-   - `ghcr.io/<owner>/<repo>:sha-<commit>`
+3. **Docker publish** — image pushed to GitHub Container Registry as
+   `ghcr.io/<owner>/ledgerlens` (the GitHub repo name is mixed-case with a
+   trailing dash, which Docker repo naming forbids) with tags:
+   - `ghcr.io/<owner>/ledgerlens:latest`
+   - `ghcr.io/<owner>/ledgerlens:v0.1.N`
+   - `ghcr.io/<owner>/ledgerlens:sha-<commit>`
 4. **Trivy image scan** — CRITICAL/HIGH container vulnerabilities uploaded as SARIF to code scanning (informational).
 5. **GitHub Release** — created with the version tag, auto-generated release notes (the commit/PR list since the previous release), and pull/run instructions for the published image.
 
@@ -51,8 +53,8 @@ Authentication uses the built-in `GITHUB_TOKEN` — no secrets to configure.
 ## Running the release image
 
 ```bash
-docker pull ghcr.io/<owner>/<repo>:latest
-docker run --env-file .env -p 8080:8080 ghcr.io/<owner>/<repo>:latest
+docker pull ghcr.io/<owner>/ledgerlens:latest
+docker run --env-file .env -p 8080:8080 ghcr.io/<owner>/ledgerlens:latest
 ```
 
 See [`.env.example`](../.env.example) for configuration. Note: the first published package may be private by default — make it public under the package's settings on GitHub if you want anonymous pulls.

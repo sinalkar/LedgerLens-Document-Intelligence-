@@ -196,8 +196,8 @@ docker compose up --build
 **Or run the released image** (published on every merge to `main`):
 
 ```bash
-docker pull ghcr.io/sinalkar/ledgerlens-document-intelligence-:latest
-docker run --env-file .env -p 8080:8080 ghcr.io/sinalkar/ledgerlens-document-intelligence-:latest
+docker pull ghcr.io/sinalkar/ledgerlens:latest
+docker run --env-file .env -p 8080:8080 ghcr.io/sinalkar/ledgerlens:latest
 ```
 
 ### ⚙️ Key configuration (`.env`)
